@@ -146,6 +146,11 @@ fn extract_text_segments(result: CallToolResult) -> Result<Vec<String>> {
             })
             .collect::<Vec<_>>()
             .join("\n");
+        let error_msg = if error_msg.is_empty() {
+            "tool execution failed with no error details".to_string()
+        } else {
+            error_msg
+        };
         return Err(anyhow::anyhow!("{}", error_msg));
     }
 

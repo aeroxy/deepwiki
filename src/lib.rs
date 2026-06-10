@@ -13,6 +13,8 @@ pub async fn run() -> Result<()> {
     let cli = Cli::parse();
     let (repo, query_type) = repo_and_query_type(&cli.command);
 
+    validate_repo_format(repo)?;
+
     if let Ok(mock_text) = std::env::var("DEEPWIKI_CLI_MOCK_TEXT") {
         println!("{}", output::format_for_claude(&mock_text, repo, query_type));
         return Ok(());
@@ -31,6 +33,20 @@ pub async fn run() -> Result<()> {
 
     println!("{}", output::format_for_claude(&text, repo, query_type));
     client.cancel().await?;
+    Ok(())
+}
+
+fn validate_repo_format(repo: &str) -> Result<()> {
+    let parts: Vec<&str> = repo.split('/').collect();
+    if parts.len() != 2 {
+        anyhow::bail!("Invalid repository format '{}': expected 'owner/repo' (e.g., 'aeroxy/ast-bro')", repo);
+    }
+    if parts[0].is_empty() {
+        anyhow::bail!("Invalid repository format '{}': owner cannot be empty", repo);
+    }
+    if parts[1].is_empty() {
+        anyhow::bail!("Invalid repository format '{}': repository name cannot be empty", repo);
+    }
     Ok(())
 }
 
