@@ -32,7 +32,7 @@ pub async fn run() -> Result<()> {
     spinner.finish();
 
     println!("{}", output::format_for_claude(&text, repo, query_type));
-    client.cancel().await?;
+    let _ = client.cancel().await;
     Ok(())
 }
 
