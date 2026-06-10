@@ -83,8 +83,10 @@ impl DeepWikiClient {
     }
 
     #[cfg(not(test))]
-    fn service(&self) -> &RunningService<RoleClient, ()> {
-        self.service.as_ref().expect("service should be present")
+    fn service(&self) -> Result<&RunningService<RoleClient, ()>> {
+        self.service
+            .as_ref()
+            .context("client not connected or already cancelled")
     }
 
     #[cfg_attr(test, allow(unused_variables))]
@@ -100,7 +102,7 @@ impl DeepWikiClient {
         #[cfg(not(test))]
         {
             call_tool_text_with(spec, |params| async {
-                let result = self.service().peer().call_tool(params).await?;
+                let result = self.service()?.peer().call_tool(params).await?;
                 extract_text_segments(result)
             })
             .await
@@ -188,13 +190,10 @@ mod tls_tests {
     use std::env;
 
     #[test]
-    fn disabled_by_default() {
+    fn tls_verification_env_values() {
         env::remove_var("DEEPWIKI_TLS_VERIFY");
-        assert!(!tls_verification_enabled());
-    }
+        assert!(!tls_verification_enabled(), "unset should disable TLS");
 
-    #[test]
-    fn enabled_by_truthy_values() {
         for value in ["1", "true", "yes", "TRUE", "  yes  "] {
             env::set_var("DEEPWIKI_TLS_VERIFY", value);
             assert!(
@@ -203,10 +202,7 @@ mod tls_tests {
                 value
             );
         }
-    }
 
-    #[test]
-    fn disabled_by_other_values() {
         for value in ["0", "false", "no", "off", ""] {
             env::set_var("DEEPWIKI_TLS_VERIFY", value);
             assert!(
@@ -215,6 +211,8 @@ mod tls_tests {
                 value
             );
         }
+
+        env::remove_var("DEEPWIKI_TLS_VERIFY");
     }
 }
 
