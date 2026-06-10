@@ -18,9 +18,9 @@ pub async fn run() -> Result<()> {
         return Ok(());
     }
 
+    let spinner = Spinner::start("Connecting to DeepWiki...");
     let mut client = DeepWikiClient::connect().await?;
 
-    let spinner = Spinner::start("Connecting to DeepWiki...");
     spinner.set_message(&command_spinner_message(&cli.command));
     let text = match &cli.command {
         Command::Ask { repo, question } => client.ask_question(repo, question).await?,

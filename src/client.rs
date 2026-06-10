@@ -101,7 +101,7 @@ impl DeepWikiClient {
         {
             call_tool_text_with(spec, |params| async {
                 let result = self.service().peer().call_tool(params).await?;
-                Ok(extract_text_segments(result))
+                extract_text_segments(result)
             })
             .await
         }
@@ -130,8 +130,24 @@ fn build_call_tool_request_params(spec: &ToolCallSpec) -> Result<CallToolRequest
 }
 
 #[cfg(not(test))]
-fn extract_text_segments(result: CallToolResult) -> Vec<String> {
-    result
+fn extract_text_segments(result: CallToolResult) -> Result<Vec<String>> {
+    if result.is_error == Some(true) {
+        let error_msg = result
+            .content
+            .into_iter()
+            .filter_map(|c| {
+                if let RawContent::Text(t) = c.raw {
+                    Some(t.text)
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+        return Err(anyhow::anyhow!("{}", error_msg));
+    }
+
+    Ok(result
         .content
         .into_iter()
         .filter_map(|c| {
@@ -141,7 +157,7 @@ fn extract_text_segments(result: CallToolResult) -> Vec<String> {
                 None
             }
         })
-        .collect()
+        .collect())
 }
 
 fn join_text_segments(text_segments: Vec<String>) -> String {
