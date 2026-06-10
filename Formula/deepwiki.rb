@@ -7,7 +7,7 @@ class Deepwiki < Formula
   on_macos do
     on_arm do
       url "https://github.com/aeroxy/deepwiki/releases/download/#{version}/deepwiki_macos_arm64.zip"
-      sha256 "0000000000000000000000000000000000000000000000000000000000000000" # Placeholder
+      sha256 "dda8477b81064e97dc7231921ceb099dd8118bb6088e74bf59b5734742b814c2"
     end
   end
 
