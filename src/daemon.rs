@@ -14,6 +14,9 @@ pub async fn run_daemon() -> Result<()> {
 
     let socket_path = socket_path();
     if socket_path.exists() {
+        if UnixStream::connect(&socket_path).await.is_ok() {
+            return Ok(());
+        }
         let _ = fs::remove_file(&socket_path);
     }
 
@@ -29,6 +32,7 @@ pub async fn run_daemon() -> Result<()> {
     );
 
     loop {
+        sessions.cleanup_idle(idle_timeout);
         match timeout(idle_timeout, listener.accept()).await {
             Ok(Ok((stream, _))) => {
                 if let Err(e) = handle_connection(stream, &mut sessions).await {
@@ -54,9 +58,32 @@ pub async fn run_daemon() -> Result<()> {
 
 async fn handle_connection(mut stream: UnixStream, sessions: &mut SessionManager) -> Result<()> {
     let data = read_msg(&mut stream).await?;
-    let request: DaemonRequest = serde_json::from_slice(&data)?;
+    let request: DaemonRequest = match serde_json::from_slice(&data) {
+        Ok(req) => req,
+        Err(e) => {
+            let resp = DaemonResponse {
+                success: false,
+                output: "".to_string(),
+                error: format!("Invalid request payload: {}", e),
+                session: None,
+                error_code: Some(400),
+            };
+            let response_data = serde_json::to_vec(&resp)?;
+            write_msg(&mut stream, &response_data).await?;
+            return Ok(());
+        }
+    };
 
-    let response = handle_request(sessions, request).await?;
+    let response = match handle_request(sessions, request).await {
+        Ok(resp) => resp,
+        Err(e) => DaemonResponse {
+            success: false,
+            output: "".to_string(),
+            error: format!("Internal daemon error: {:#}", e),
+            session: None,
+            error_code: Some(500),
+        },
+    };
     let response_data = serde_json::to_vec(&response)?;
     write_msg(&mut stream, &response_data).await?;
 

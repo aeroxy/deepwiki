@@ -55,10 +55,12 @@ impl SessionManager {
     }
 
     pub fn get(&mut self, session_key: &str) -> Option<&mut Session> {
-        self.sessions.get_mut(session_key).map(|s| {
-            s.last_active = Instant::now();
-            s
-        })
+        if let Some(session) = self.sessions.get_mut(session_key) {
+            session.last_active = Instant::now();
+            Some(session)
+        } else {
+            None
+        }
     }
 
     pub fn cleanup_idle(&mut self, max_idle: Duration) {
@@ -84,7 +86,6 @@ impl Default for SessionManager {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::client::DeepWikiClient;
 
     #[tokio::test]
     async fn test_session_manager_new() {
@@ -120,7 +121,7 @@ mod tests {
     #[tokio::test]
     async fn test_cleanup_idle() {
         let mut manager = SessionManager::new();
-        let (name, _) = manager.get_or_create(None, "owner/repo").await.unwrap();
+        let (_name, _) = manager.get_or_create(None, "owner/repo").await.unwrap();
         assert_eq!(manager.sessions.len(), 1);
 
         std::thread::sleep(Duration::from_millis(10));
