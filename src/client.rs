@@ -1,6 +1,8 @@
 use anyhow::{Context, Result};
+use rmcp::model::CallToolRequestParams;
+#[cfg(not(test))]
 use rmcp::{
-    model::{CallToolRequestParams, CallToolResult, RawContent},
+    model::{CallToolResult, RawContent},
     serve_client,
     service::RunningService,
     RoleClient,
@@ -19,6 +21,7 @@ pub(crate) struct ToolCallSpec {
 
 #[derive(Debug)]
 pub struct DeepWikiClient {
+    #[cfg(not(test))]
     service: Option<RunningService<RoleClient, ()>>,
 }
 
@@ -27,6 +30,7 @@ impl DeepWikiClient {
     pub async fn connect() -> Result<Self> {
         let reqwest_client = reqwest::Client::builder()
             .danger_accept_invalid_certs(!tls_verification_enabled())
+            .timeout(std::time::Duration::from_secs(30))
             .build()
             .context("Failed to build reqwest client")?;
 
@@ -40,7 +44,7 @@ impl DeepWikiClient {
 
     #[cfg(test)]
     pub async fn connect() -> Result<Self> {
-        Ok(Self { service: None })
+        Ok(Self {})
     }
 
     pub async fn ask_question(&self, repo: &str, question: &str) -> Result<String> {
@@ -83,13 +87,14 @@ impl DeepWikiClient {
         self.service.as_ref().expect("service should be present")
     }
 
+    #[cfg_attr(test, allow(unused_variables))]
     pub(crate) async fn call_tool_text(&self, spec: ToolCallSpec) -> Result<String> {
         #[cfg(test)]
         {
             if let Ok(mock) = std::env::var("DEEPWIKI_CLI_MOCK_TEXT") {
                 return Ok(mock);
             }
-            return Ok("mock response".to_string());
+            Ok("mock response".to_string())
         }
 
         #[cfg(not(test))]
@@ -124,6 +129,7 @@ fn build_call_tool_request_params(spec: &ToolCallSpec) -> Result<CallToolRequest
     Ok(CallToolRequestParams::new(spec.name).with_arguments(arguments))
 }
 
+#[cfg(not(test))]
 fn extract_text_segments(result: CallToolResult) -> Vec<String> {
     result
         .content
