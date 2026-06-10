@@ -1,8 +1,5 @@
 .PHONY: build check run clean bump-patch bump-minor bump-major update-formula test
 
-LINUX_TARGET = x86_64-unknown-linux-gnu
-LINUX_OUT    = target/$(LINUX_TARGET)/release
-
 ## Build the full project (frontend + backend, debug)
 build:
 	cargo build
