@@ -23,31 +23,17 @@ cargo install deepwiki
 
 ## Usage
 
+Each command is a single, stateless query — there is no conversation state to preserve across invocations. If you want to ask a follow-up, run another `ask` with the same `<repo>`.
+
 ```bash
 deepwiki structure aeroxy/ast-bro           # list section titles
 deepwiki read aeroxy/ast-bro                # full wiki as Markdown
 deepwiki ask aeroxy/ast-bro "How does the call graph resolution work?"
 ```
 
-### Multi-turn Sessions
-
-`deepwiki` supports persistent conversation sessions. When you ask a question, it returns a session ID that you can use for follow-ups:
-
-```bash
-$ deepwiki ask aeroxy/ast-bro "What does ast-bro do?"
-...
-[session: bold-fox]
-
-$ deepwiki ask --session bold-fox "Tell me more about the dependency graph features."
-```
-
-Sessions are managed by a background daemon that keeps the MCP connection alive. The daemon auto-exits after 5 minutes of inactivity.
-
 ## How it works
 
-`deepwiki` connects to `mcp.deepwiki.com` using the Model Context Protocol over HTTPS.
-
-A background daemon handles session management, allowing multi-turn conversations by maintaining persistent stateful connections.
+`deepwiki` connects to `mcp.deepwiki.com` using the Model Context Protocol over HTTPS. Each invocation opens a fresh MCP connection, sends a single tool call (`ask_question`, `read_wiki_structure`, or `read_wiki_contents`), prints the result, and exits.
 
 No authentication required for public repositories.
 
@@ -59,13 +45,11 @@ TLS certificate verification is **disabled by default** to support running insid
 
 Every command prints a header line followed by the result:
 
-```
+```markdown
 ## DeepWiki: <owner>/<repo> (<command>)
 
 <content>
 ```
-
-The session ID (if any) is printed to stderr.
 
 ## Claude Code skill
 

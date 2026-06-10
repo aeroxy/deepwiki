@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
-#[command(name = "deepwiki", about = "Query GitHub repo wikis via DeepWiki", version)]
+#[command(name = "deepwiki", about = "Query GitHub repo wikis via DeepWiki from the terminal", version)]
 pub struct Cli {
     #[command(subcommand)]
     pub command: Command,
@@ -15,9 +15,6 @@ pub enum Command {
         repo: String,
         /// Question to ask
         question: String,
-        /// Continue an existing conversation session (friendly name like "bold-fox")
-        #[arg(long, short)]
-        session: Option<String>,
     },
     /// List wiki topics for a repository
     Structure {
@@ -41,24 +38,9 @@ mod tests {
         let cli = Cli::try_parse_from(["deepwiki", "ask", "aeroxy/ast-bro", "How it works?"])
             .expect("ask command should parse");
         match cli.command {
-            Command::Ask { repo, question, session } => {
+            Command::Ask { repo, question } => {
                 assert_eq!(repo, "aeroxy/ast-bro");
                 assert_eq!(question, "How it works?");
-                assert!(session.is_none());
-            }
-            _ => panic!("expected ask command"),
-        }
-    }
-
-    #[test]
-    fn parses_ask_command_with_session() {
-        let cli = Cli::try_parse_from(["deepwiki", "ask", "aeroxy/ast-bro", "Follow up", "--session", "bold-fox"])
-            .expect("ask command with session should parse");
-        match cli.command {
-            Command::Ask { repo, question, session } => {
-                assert_eq!(repo, "aeroxy/ast-bro");
-                assert_eq!(question, "Follow up");
-                assert_eq!(session, Some("bold-fox".to_string()));
             }
             _ => panic!("expected ask command"),
         }
